@@ -1,0 +1,10 @@
+# Never commit personal / generated data
+stars.json
+archive/
+rendered/
+
+# OS / editor noise
+.DS_Store
+*.swp
+__pycache__/
+*.pyc
