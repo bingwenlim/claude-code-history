@@ -27,8 +27,12 @@
 #
 # Requires: fzf, python3. Backend logic lives in cch.py next to this file.
 
+# Capture this script's own directory at source time (not call time), so the
+# function can find cch.py wherever the installer placed it. Override: CCH_DIR.
+typeset -g _CCH_DIR="${CCH_DIR:-${${(%):-%x}:A:h}}"
+
 cch() {
-  local here="${HOME}/.claude/history"
+  local here="${_CCH_DIR}"
   local py="${here}/cch.py"
 
   if ! command -v fzf >/dev/null 2>&1; then
