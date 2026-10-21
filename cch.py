@@ -26,10 +26,15 @@ import textwrap
 import datetime
 from pathlib import Path
 
+# Claude Code's own session logs — we only ever READ these, never write.
 PROJECTS = Path.home() / ".claude" / "projects"
-HTML_OUT = Path.home() / ".claude" / "history" / "rendered"
-STARS_FILE = Path.home() / ".claude" / "history" / "stars.json"
-ARCHIVE_DIR = Path.home() / ".claude" / "history" / "archive"
+
+# Our user data (favourites, archived transcripts, HTML exports) lives apart
+# from Claude Code's dir, under XDG state. Override with CCH_DATA_DIR.
+DATA_DIR = Path(os.environ.get("CCH_DATA_DIR", Path.home() / ".local" / "state" / "cch"))
+HTML_OUT = DATA_DIR / "rendered"
+STARS_FILE = DATA_DIR / "stars.json"
+ARCHIVE_DIR = DATA_DIR / "archive"
 
 # ANSI colors for the fzf preview pane
 DIM = "\033[2m"
@@ -201,7 +206,10 @@ def session_meta(fp):
             title = o["aiTitle"]
         elif t == "last-prompt" and o.get("lastPrompt"):
             last_prompt = o["lastPrompt"]
-        if o.get("cwd"):
+        if o.get("cwd") and cwd is None:
+            # Keep the FIRST cwd — where the session started, which is the
+            # project dir claude --resume uses. A session may cd elsewhere
+            # mid-run; overwriting would wrongly report that later directory.
             cwd = o["cwd"]
         if o.get("timestamp"):
             last_ts = o["timestamp"]

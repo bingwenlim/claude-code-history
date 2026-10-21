@@ -25,18 +25,47 @@ session logs under `~/.claude/projects`.
 ## Install
 
 ```sh
+git clone https://github.com/bingwenlim/claude-code-history.git
+cd claude-code-history
 ./install.sh
 ```
 
-This copies `cch.py` and `cch.zsh` into `~/.claude/history/` and adds one
-`source` line to your `~/.zshrc` (or `~/.bashrc`). It's idempotent — re-running
-updates the scripts without duplicating the source line.
+If `./install.sh` reports "permission denied", run `sh install.sh` instead
+(git didn't preserve the executable bit).
 
-Then open a new terminal (or `source ~/.zshrc`) and run:
+The installer puts the scripts in `~/.local/share/cch/` and adds one `source`
+line to your `~/.zshrc` (or `~/.bashrc`). User data (favourites, archived
+transcripts, HTML exports) lives separately in `~/.local/state/cch/`. It's
+idempotent — re-running updates the scripts without duplicating the source
+line, and migrates data from the old `~/.claude/history` location if present.
+
+Then open a new terminal (or `source ~/.zshrc`) and run the command — it's
+called `cch`:
 
 ```sh
 cch
 ```
+
+## Update
+
+```sh
+git pull
+./install.sh
+```
+
+Re-running the installer is safe; it overwrites the scripts and leaves your
+data and shell config untouched.
+
+## Uninstall
+
+Remove the two lines under `# Claude Code history browser (cch)` from your
+`~/.zshrc`, then:
+
+```sh
+rm -rf ~/.local/share/cch ~/.local/state/cch
+```
+
+Your Claude Code sessions under `~/.claude/projects` are never touched by cch.
 
 ## Keys
 
@@ -64,9 +93,11 @@ Shortcut: `cch .` jumps straight to the current folder's sessions.
 
 ## Notes
 
-- Nothing personal is bundled — the scripts use only `$HOME`-relative paths.
-  Your favourites (`stars.json`), archived transcripts (`archive/`), and HTML
-  exports (`rendered/`) are created locally and are not part of the package.
+- Code lives in `~/.local/share/cch/`; your data (`stars.json`, `archive/`,
+  `rendered/`) lives in `~/.local/state/cch/`. Override the data location with
+  the `CCH_DATA_DIR` env var. Nothing personal is bundled in the repo.
+- cch only ever **reads** `~/.claude/projects` — it never writes to Claude
+  Code's own files.
 - Preview scrolling uses `[` `]` and PgUp/PgDn because some terminals (e.g.
   Warp) swallow Shift+arrow and the mouse wheel before `fzf` sees them.
 
