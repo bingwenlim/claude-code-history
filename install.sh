@@ -1,42 +1,53 @@
 #!/usr/bin/env bash
 # Installer for `cch` — the Claude Code chat-history browser.
 #
-# Copies cch.py + cch.zsh into ~/.claude/history/ and adds a single source
-# line to your shell rc. Idempotent: safe to re-run (it won't duplicate the
-# source line, and it overwrites the scripts with the versions in this dir).
+# One model for everyone: the git clone IS the install. You run cch straight
+# from the checkout, so `git pull` / `git push` just work.
 #
-# Usage:
-#   ./install.sh
+#   code  ->  this clone (default: ~/claude-code-history)
+#   data  ->  ~/.local/state/cch/   (stars.json, archive/, rendered/)
 #
-# Requirements: fzf, python3. On macOS: `brew install fzf`.
+# cch reads Claude Code's own logs under ~/.claude/projects (read-only) and
+# never writes there. Idempotent: safe to re-run — it won't duplicate the
+# shell source line, and migrates data from the old ~/.claude/history layout
+# if present.
+#
+# Usage (from inside the clone):
+#   ./install.sh          (or:  sh install.sh)
+#
+# Requirements: fzf, python3.  macOS: brew install fzf
 
 set -euo pipefail
 
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEST_DIR="${HOME}/.claude/history"
+# The clone this script lives in — that's what cch runs from. No copying.
+CODE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+DATA_DIR="${HOME}/.local/state/cch"
+OLD_DIR="${HOME}/.claude/history"
 
 echo "cch installer"
-echo "  source: ${SRC_DIR}"
-echo "  dest:   ${DEST_DIR}"
+echo "  code: ${CODE_DIR}  (runs from here — git pull to update)"
+echo "  data: ${DATA_DIR}"
 echo
 
 # 1. Dependency checks (warn, don't fail — user may install later).
-if ! command -v fzf >/dev/null 2>&1; then
-  echo "⚠  fzf not found. Install it before using cch:  brew install fzf"
-fi
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "⚠  python3 not found. Install Python 3 before using cch."
+command -v fzf     >/dev/null 2>&1 || echo "⚠  fzf not found. Install it:  brew install fzf"
+command -v python3 >/dev/null 2>&1 || echo "⚠  python3 not found. Install Python 3 (3.8+)."
+
+# 2. Ensure the data dir exists (code already lives here — nothing to copy).
+mkdir -p "${DATA_DIR}/archive" "${DATA_DIR}/rendered"
+
+# 3. One-time migration from the old ~/.claude/history layout.
+if [ -d "${OLD_DIR}" ]; then
+  if [ -f "${OLD_DIR}/stars.json" ] && [ ! -f "${DATA_DIR}/stars.json" ]; then
+    cp "${OLD_DIR}/stars.json" "${DATA_DIR}/stars.json"
+    echo "✓ migrated favourites from ${OLD_DIR}"
+  fi
+  [ -d "${OLD_DIR}/archive" ]  && cp -R "${OLD_DIR}/archive/."  "${DATA_DIR}/archive/"  2>/dev/null || true
+  [ -d "${OLD_DIR}/rendered" ] && cp -R "${OLD_DIR}/rendered/." "${DATA_DIR}/rendered/" 2>/dev/null || true
 fi
 
-# 2. Copy the two scripts into place.
-mkdir -p "${DEST_DIR}"
-cp "${SRC_DIR}/cch.py"  "${DEST_DIR}/cch.py"
-cp "${SRC_DIR}/cch.zsh" "${DEST_DIR}/cch.zsh"
-echo "✓ copied cch.py and cch.zsh to ${DEST_DIR}"
-
-# 3. Add the source line to the right rc file (zsh or bash), once.
-SOURCE_LINE='source "$HOME/.claude/history/cch.zsh"'
-RC=""
+# 4. Add the source line (pointing at THIS clone) to the right rc file, once.
+SOURCE_LINE="source \"${CODE_DIR}/cch.zsh\""
 if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename "${SHELL:-}")" = "zsh" ]; then
   RC="${HOME}/.zshrc"
 else
@@ -44,7 +55,7 @@ else
 fi
 
 if [ -f "${RC}" ] && grep -qF "cch.zsh" "${RC}"; then
-  echo "✓ ${RC} already sources cch.zsh (left unchanged)"
+  echo "✓ ${RC} already sources cch (left unchanged)"
 else
   {
     echo ""
@@ -56,3 +67,4 @@ fi
 
 echo
 echo "Done. Open a new terminal (or run: source ${RC}) and type:  cch"
+echo "To update later:  cd ${CODE_DIR} && git pull"

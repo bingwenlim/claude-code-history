@@ -24,19 +24,52 @@ session logs under `~/.claude/projects`.
 
 ## Install
 
+Clone it somewhere permanent (the clone *is* the install — you run cch from it
+and `git pull` to update):
+
 ```sh
+git clone https://github.com/bingwenlim/claude-code-history.git ~/claude-code-history
+cd ~/claude-code-history
 ./install.sh
 ```
 
-This copies `cch.py` and `cch.zsh` into `~/.claude/history/` and adds one
-`source` line to your `~/.zshrc` (or `~/.bashrc`). It's idempotent — re-running
-updates the scripts without duplicating the source line.
+If `./install.sh` reports "permission denied", run `sh install.sh` instead
+(git didn't preserve the executable bit).
 
-Then open a new terminal (or `source ~/.zshrc`) and run:
+The installer adds one `source` line to your `~/.zshrc` (or `~/.bashrc`)
+pointing at this clone — no files are copied elsewhere. User data (favourites,
+archived transcripts, HTML exports) lives separately in `~/.local/state/cch/`,
+so it's never mixed into the git checkout. Re-running is safe and migrates data
+from the old `~/.claude/history` location if present.
+
+Then open a new terminal (or `source ~/.zshrc`) and run the command — it's
+called `cch`:
 
 ```sh
 cch
 ```
+
+## Update
+
+From the clone:
+
+```sh
+git pull
+```
+
+That's it — cch runs directly from the checkout, so a pull is the update.
+(Re-running `./install.sh` is harmless but unnecessary.)
+
+## Uninstall
+
+Remove the two lines under `# Claude Code history browser (cch)` from your
+`~/.zshrc`, then delete the clone and your data:
+
+```sh
+rm -rf ~/claude-code-history ~/.local/state/cch
+```
+
+Your Claude Code sessions under `~/.claude/projects` are never touched by cch.
 
 ## Keys
 
@@ -64,9 +97,12 @@ Shortcut: `cch .` jumps straight to the current folder's sessions.
 
 ## Notes
 
-- Nothing personal is bundled — the scripts use only `$HOME`-relative paths.
-  Your favourites (`stars.json`), archived transcripts (`archive/`), and HTML
-  exports (`rendered/`) are created locally and are not part of the package.
+- Code runs from your clone (e.g. `~/claude-code-history`). Your data
+  (`stars.json`, `archive/`, `rendered/`) lives in `~/.local/state/cch/` —
+  separate from the checkout. Override the data location with the
+  `CCH_DATA_DIR` env var. Nothing personal is committed to the repo.
+- cch only ever **reads** `~/.claude/projects` — it never writes to Claude
+  Code's own files.
 - Preview scrolling uses `[` `]` and PgUp/PgDn because some terminals (e.g.
   Warp) swallow Shift+arrow and the mouse wheel before `fzf` sees them.
 
